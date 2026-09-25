@@ -6,6 +6,13 @@ export function defaultData() {
   return { version: 1, days: {}, settings: { weeklyGoal: 3, weekStart: 1 } };
 }
 
+// Entries saved before multi-select stored a single `type` string.
+function normalizeTypes(entry) {
+  const raw = Array.isArray(entry.types) ? entry.types : [entry.type];
+  const types = WORKOUT_TYPES.filter((t) => raw.includes(t));
+  return types.length ? types : ["Other"];
+}
+
 // Accepts anything (e.g. an imported file) and returns a well-formed data object,
 // dropping entries that don't look like valid day records.
 export function normalize(raw) {
@@ -16,7 +23,7 @@ export function normalize(raw) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
       const entry = value && typeof value === "object" ? value : {};
       data.days[key] = {
-        type: WORKOUT_TYPES.includes(entry.type) ? entry.type : "Other",
+        types: normalizeTypes(entry),
         note: typeof entry.note === "string" ? entry.note.slice(0, 500) : "",
       };
     }

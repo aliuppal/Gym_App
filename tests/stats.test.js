@@ -68,7 +68,7 @@ test("weeklyGoalStreak counts consecutive goal weeks", () => {
 
 test("computeStats aggregates everything", () => {
   const days = Object.fromEntries(
-    ["2025-12-31", "2026-09-01", "2026-09-21", "2026-09-22", "2026-09-24", "2026-09-25"].map((k) => [k, { type: "Strength", note: "" }]),
+    ["2025-12-31", "2026-09-01", "2026-09-21", "2026-09-22", "2026-09-24", "2026-09-25"].map((k) => [k, { types: ["Strength"], note: "" }]),
   );
   const stats = computeStats(days, d("2026-09-25"), { weeklyGoal: 3, weekStart: 1 });
   assert.deepEqual(stats, {
@@ -84,13 +84,25 @@ test("computeStats aggregates everything", () => {
 
 test("normalize drops junk and clamps settings", () => {
   const data = normalize({
-    days: { "2026-09-25": { type: "Cardio", note: "run" }, "bad-key": {}, "2026-09-24": { type: "???" } },
+    days: {
+      "2026-09-25": { types: ["Cardio", "Strength", "Bogus"], note: "run" },
+      "bad-key": {},
+      "2026-09-24": { types: ["???"] },
+      "2026-09-23": { types: [] },
+    },
     settings: { weeklyGoal: 12, weekStart: 0 },
   });
   assert.deepEqual(data.days, {
-    "2026-09-25": { type: "Cardio", note: "run" },
-    "2026-09-24": { type: "Other", note: "" },
+    "2026-09-25": { types: ["Strength", "Cardio"], note: "run" },
+    "2026-09-24": { types: ["Other"], note: "" },
+    "2026-09-23": { types: ["Other"], note: "" },
   });
   assert.deepEqual(data.settings, { weeklyGoal: 3, weekStart: 0 });
   assert.deepEqual(normalize(null).days, {});
+});
+
+test("normalize migrates legacy single-type entries", () => {
+  const data = normalize({ days: { "2026-09-20": { type: "HIIT", note: "" }, "2026-09-21": { type: "nope" } } });
+  assert.deepEqual(data.days["2026-09-20"].types, ["HIIT"]);
+  assert.deepEqual(data.days["2026-09-21"].types, ["Other"]);
 });

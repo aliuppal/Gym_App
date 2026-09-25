@@ -6,7 +6,7 @@ desktop browser and installs to your phone's home screen, where it runs full scr
 ## Features
 
 - **One-tap logging:** the big button logs today's workout.
-- **Calendar:** tap any past day to log it, choose a workout type (Strength, Cardio, HIIT,
+- **Calendar:** tap any past day to log it, choose one or more workout types (Strength, Cardio, HIIT,
   Mobility, Sports, Other), add a note, or remove it.
 - **Stats:** current streak, longest streak, days this week/month/year, and a weekly goal
   with a progress bar and a count of goal weeks in a row.

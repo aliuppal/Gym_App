@@ -9,7 +9,7 @@ let data = load();
 let today = startOfToday();
 let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let editingKey = null;
-let selectedType = WORKOUT_TYPES[0];
+let selectedTypes = new Set();
 
 function startOfToday() {
   const now = new Date();
@@ -41,7 +41,7 @@ function render() {
   });
 
   const logBtn = $("logTodayBtn");
-  logBtn.textContent = loggedToday ? `✓ Logged today · ${data.days[toKey(today)].type}` : "Log today's workout";
+  logBtn.textContent = loggedToday ? `✓ Logged today · ${formatTypes(data.days[toKey(today)])}` : "Log today's workout";
   logBtn.classList.toggle("done", loggedToday);
 
   $("statStreak").textContent = stats.currentStreak;
@@ -95,7 +95,7 @@ function renderCalendar(weekStart) {
       btn.disabled = true;
     }
     const label = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-    btn.setAttribute("aria-label", entry ? `${label}: ${entry.type}` : `${label}: rest day`);
+    btn.setAttribute("aria-label", entry ? `${label}: ${formatTypes(entry)}` : `${label}: rest day`);
     cells.push(btn);
   }
   cal.replaceChildren(...cells);
@@ -121,9 +121,9 @@ function renderHeatmap(weekStart) {
       const entry = data.days[key];
       if (entry) {
         cell.classList.add("on");
-        counts[entry.type] = (counts[entry.type] || 0) + 1;
+        for (const type of entry.types) counts[type] = (counts[type] || 0) + 1;
       }
-      cell.title = `${date.toLocaleDateString()}${entry ? ` · ${entry.type}` : ""}`;
+      cell.title = `${date.toLocaleDateString()}${entry ? ` · ${formatTypes(entry)}` : ""}`;
     }
     cells.push(cell);
   }
@@ -150,21 +150,33 @@ function buildTypeChips() {
     chip.className = "chip";
     chip.textContent = type;
     chip.dataset.type = type;
-    chip.addEventListener("click", () => selectType(type));
+    chip.addEventListener("click", () => toggleType(type));
     fieldset.append(chip);
   }
 }
 
-function selectType(type) {
-  selectedType = type;
+function setTypes(types) {
+  selectedTypes = new Set(types);
   for (const chip of $("typeChips").querySelectorAll(".chip")) {
-    chip.setAttribute("aria-pressed", String(chip.dataset.type === type));
+    chip.setAttribute("aria-pressed", String(selectedTypes.has(chip.dataset.type)));
   }
+  $("saveDay").disabled = selectedTypes.size === 0;
 }
 
-function lastUsedType() {
+function toggleType(type) {
+  const next = new Set(selectedTypes);
+  if (next.has(type)) next.delete(type);
+  else next.add(type);
+  setTypes(next);
+}
+
+function formatTypes(entry) {
+  return entry.types.join(" + ");
+}
+
+function lastUsedTypes() {
   const keys = Object.keys(data.days).sort();
-  return keys.length ? data.days[keys[keys.length - 1]].type : WORKOUT_TYPES[0];
+  return keys.length ? [...data.days[keys[keys.length - 1]].types] : [WORKOUT_TYPES[0]];
 }
 
 function openDay(key) {
@@ -173,7 +185,7 @@ function openDay(key) {
   $("dayTitle").textContent = fromKey(key).toLocaleDateString(undefined, {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   });
-  selectType(entry ? entry.type : lastUsedType());
+  setTypes(entry ? entry.types : lastUsedTypes());
   $("dayNote").value = entry ? entry.note : "";
   $("removeDay").hidden = !entry;
   $("saveDay").textContent = entry ? "Save" : "Log workout";
@@ -181,7 +193,10 @@ function openDay(key) {
 }
 
 function saveDay() {
-  data.days[editingKey] = { type: selectedType, note: $("dayNote").value.trim() };
+  if (selectedTypes.size === 0) return;
+  // Keep the canonical WORKOUT_TYPES order regardless of tap order.
+  const types = WORKOUT_TYPES.filter((t) => selectedTypes.has(t));
+  data.days[editingKey] = { types, note: $("dayNote").value.trim() };
   persist();
 }
 
@@ -235,7 +250,7 @@ function init() {
     if (data.days[key]) {
       openDay(key);
     } else {
-      data.days[key] = { type: lastUsedType(), note: "" };
+      data.days[key] = { types: lastUsedTypes(), note: "" };
       persist();
       toast("Nice work! Workout logged 💪");
     }

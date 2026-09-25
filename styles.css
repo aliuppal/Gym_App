@@ -233,3 +233,5 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.legend-hint { opacity: 0.8; }
+.btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
