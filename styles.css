@@ -235,3 +235,4 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .legend-hint { opacity: 0.8; }
 .btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.storage-info { margin: 0; color: var(--text); font-size: 0.9rem; }

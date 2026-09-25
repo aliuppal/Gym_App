@@ -1,11 +1,13 @@
 import { toKey, fromKey, addDays, startOfWeek, computeStats } from "./stats.js";
-import { WORKOUT_TYPES, defaultData, normalize, load, save } from "./storage.js";
+import { WORKOUT_TYPES, defaultData, normalize } from "./storage.js";
+import { openStore, requestPersistence, isPersisted } from "./db.js";
 
 const $ = (id) => document.getElementById(id);
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HEATMAP_WEEKS = 26;
 
-let data = load();
+let data = defaultData();
+let store = null;
 let today = startOfToday();
 let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let editingKey = null;
@@ -16,8 +18,26 @@ function startOfToday() {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function persist() {
-  if (!save(data)) toast("Couldn't save — storage is full or disabled");
+// Other open tabs/windows of the app reload from the database when we write.
+const channel = "BroadcastChannel" in window ? new BroadcastChannel("gym-days") : null;
+
+// Renders the optimistic in-memory change right away, then writes it to the
+// on-device database. On failure the UI is reloaded from what was actually saved.
+async function commit(write) {
+  render();
+  try {
+    await write;
+    channel?.postMessage("changed");
+    requestPersistence().then(renderStorageInfo);
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't save — device storage is full or unavailable");
+    await reloadFromStore();
+  }
+}
+
+async function reloadFromStore() {
+  data = await store.load();
   render();
 }
 
@@ -196,14 +216,15 @@ function saveDay() {
   if (selectedTypes.size === 0) return;
   // Keep the canonical WORKOUT_TYPES order regardless of tap order.
   const types = WORKOUT_TYPES.filter((t) => selectedTypes.has(t));
-  data.days[editingKey] = { types, note: $("dayNote").value.trim() };
-  persist();
+  const entry = { types, note: $("dayNote").value.trim() };
+  data.days[editingKey] = entry;
+  commit(store.putDay(editingKey, entry));
 }
 
 function removeDay() {
   delete data.days[editingKey];
   $("dayDialog").close();
-  persist();
+  commit(store.deleteDay(editingKey));
   toast("Workout removed");
 }
 
@@ -212,7 +233,20 @@ function removeDay() {
 function openSettings() {
   $("goalSelect").value = String(data.settings.weeklyGoal);
   $("weekStartSelect").value = String(data.settings.weekStart);
+  renderStorageInfo();
   $("settingsDialog").showModal();
+}
+
+async function renderStorageInfo() {
+  if (!store) return;
+  const count = Object.keys(data.days).length;
+  const where = store.kind === "indexeddb" ? "On-device database" : "Browser storage (limited)";
+  const persisted = await isPersisted();
+  const safety =
+    persisted === true
+      ? "Protected from automatic cleanup."
+      : "The system may clear it if the device runs very low on space — export a backup now and then.";
+  $("storageInfo").textContent = `${where} · ${count} day${count === 1 ? "" : "s"} saved. ${safety}`;
 }
 
 function exportData() {
@@ -231,7 +265,7 @@ async function importData(file) {
     const count = Object.keys(imported.days).length;
     if (!confirm(`Import ${count} workout day(s)? They will be merged with your current data.`)) return;
     data = { ...data, days: { ...data.days, ...imported.days }, settings: imported.settings };
-    persist();
+    await commit(store.replaceAll(data));
     openSettings();
     toast(`Imported ${count} day(s)`);
   } catch {
@@ -241,7 +275,16 @@ async function importData(file) {
 
 // ---------- Wiring ----------
 
-function init() {
+async function init() {
+  try {
+    store = await openStore();
+    data = await store.load();
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't open on-device storage");
+    return;
+  }
+
   buildTypeChips();
   for (let i = 1; i <= 7; i++) $("goalSelect").append(new Option(`${i} day${i > 1 ? "s" : ""} per week`, i));
 
@@ -250,8 +293,9 @@ function init() {
     if (data.days[key]) {
       openDay(key);
     } else {
-      data.days[key] = { types: lastUsedTypes(), note: "" };
-      persist();
+      const entry = { types: lastUsedTypes(), note: "" };
+      data.days[key] = entry;
+      commit(store.putDay(key, entry));
       toast("Nice work! Workout logged 💪");
     }
   });
@@ -277,11 +321,11 @@ function init() {
   $("settingsBtn").addEventListener("click", openSettings);
   $("goalSelect").addEventListener("change", (e) => {
     data.settings.weeklyGoal = Number(e.target.value);
-    persist();
+    commit(store.putSettings(data.settings));
   });
   $("weekStartSelect").addEventListener("change", (e) => {
     data.settings.weekStart = Number(e.target.value);
-    persist();
+    commit(store.putSettings(data.settings));
   });
   $("exportBtn").addEventListener("click", exportData);
   $("importBtn").addEventListener("click", () => $("importFile").click());
@@ -294,7 +338,7 @@ function init() {
     if (!confirm("Delete all workout history on this device? This can't be undone.")) return;
     data = defaultData();
     $("settingsDialog").close();
-    persist();
+    commit(store.replaceAll(data));
     toast("All data deleted");
   });
 
@@ -317,13 +361,13 @@ function init() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") refreshToday();
   });
-  window.addEventListener("storage", () => {
-    data = load();
-    render();
-  });
+  channel?.addEventListener("message", reloadFromStore);
   setInterval(refreshToday, 60 * 1000);
 
   render();
+  // Installed apps ask for persistent storage up front; in a browser tab we
+  // wait until the first save so we don't prompt people who are just looking.
+  if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) requestPersistence();
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});

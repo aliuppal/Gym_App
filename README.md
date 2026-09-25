@@ -12,8 +12,10 @@ desktop browser and installs to your phone's home screen, where it runs full scr
   with a progress bar and a count of goal weeks in a row.
 - **Heatmap:** the last 6 months at a glance, with a breakdown by workout type.
 - **Works offline:** it's a PWA with a service worker, so it opens without a connection.
-- **Private:** data is stored only on your device (`localStorage`). Export and import a JSON
-  backup from Settings to move it between devices.
+- **On-device database:** workouts are saved in IndexedDB on your phone or computer, work fully
+  offline, and never leave the device. The app asks the system to keep this storage persistent,
+  so it isn't cleared when space runs low (Settings shows the current status). Export and import a
+  JSON backup from Settings to move data between devices.
 - Light and dark themes follow your system setting.
 
 ## Run locally
@@ -46,7 +48,8 @@ index.html            App markup
 styles.css            Styles (mobile-first, light/dark)
 js/app.js             UI and event wiring
 js/stats.js           Pure date/streak calculations (unit tested)
-js/storage.js         localStorage persistence and import validation
+js/db.js              On-device database (IndexedDB, localStorage fallback)
+js/storage.js         Data model and import validation
 sw.js                 Service worker for offline support
 manifest.webmanifest  PWA manifest
 icons/                App icons

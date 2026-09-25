@@ -1,5 +1,3 @@
-const STORAGE_KEY = "gym-tracker:v1";
-
 export const WORKOUT_TYPES = ["Strength", "Cardio", "HIIT", "Mobility", "Sports", "Other"];
 
 export function defaultData() {
@@ -33,22 +31,4 @@ export function normalize(raw) {
   if (Number.isInteger(goal) && goal >= 1 && goal <= 7) data.settings.weeklyGoal = goal;
   if (s.weekStart === 0 || s.weekStart === 1) data.settings.weekStart = s.weekStart;
   return data;
-}
-
-export function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalize(JSON.parse(raw)) : defaultData();
-  } catch {
-    return defaultData();
-  }
-}
-
-export function save(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return true;
-  } catch {
-    return false;
-  }
 }
