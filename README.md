@@ -29,10 +29,9 @@ npm test       # runs unit tests for the streak/stats logic (Node 18+)
 
 ## Deploy (web + mobile)
 
-The workflow in `.github/workflows/pages.yml` runs the tests and publishes the app to
-GitHub Pages on every push to `main`. Turn it on once under **Settings → Pages → Build and
-deployment → Source: GitHub Actions**. The app will then be at
-`https://<user>.github.io/<repo>/`.
+The app is published to GitHub Pages at https://aliuppal.github.io/Gym_App/ by
+`.github/workflows/jekyll-gh-pages.yml` on every push to the repository's default branch.
+`.github/workflows/ci.yml` runs the unit tests on every push and pull request.
 
 Any static host (Netlify, Vercel, Cloudflare Pages) also works: upload the repository root.
 
