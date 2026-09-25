@@ -1,0 +1,11 @@
+{
+  "name": "gym-days",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Installable web app for tracking gym days, streaks and weekly goals.",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes http-server . -p 8080 -c-1",
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gym Days</title>
+  <meta name="description" content="Track the days you hit the gym, your streaks and weekly goals.">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gym Days">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div>
+        <h1>Gym Days</h1>
+        <p class="today-label" id="todayLabel"></p>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.3 7.3 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+      </button>
+    </header>
+
+    <button class="log-today" id="logTodayBtn"></button>
+
+    <section class="stats" aria-label="Statistics">
+      <div class="stat hero"><span class="stat-value" id="statStreak">0</span><span class="stat-label">day streak</span></div>
+      <div class="stat hero"><span class="stat-value" id="statWeek">0/3</span><span class="stat-label">this week</span>
+        <div class="goal-bar" aria-hidden="true"><div id="goalFill"></div></div>
+      </div>
+      <div class="stat"><span class="stat-value" id="statGoalStreak">0</span><span class="stat-label">goal weeks in a row</span></div>
+      <div class="stat"><span class="stat-value" id="statLongest">0</span><span class="stat-label">longest streak</span></div>
+      <div class="stat"><span class="stat-value" id="statMonth">0</span><span class="stat-label">this month</span></div>
+      <div class="stat"><span class="stat-value" id="statYear">0</span><span class="stat-label">this year</span></div>
+    </section>
+
+    <section class="card">
+      <div class="cal-head">
+        <button class="icon-btn" id="prevMonth" aria-label="Previous month">‹</button>
+        <h2 id="monthLabel"></h2>
+        <button class="icon-btn" id="nextMonth" aria-label="Next month">›</button>
+      </div>
+      <div class="cal-grid weekdays" id="weekdays"></div>
+      <div class="cal-grid" id="calendar"></div>
+      <p class="hint">Tap a day to log or edit a workout.</p>
+    </section>
+
+    <section class="card">
+      <h2>Last 6 months</h2>
+      <div class="heatmap" id="heatmap" aria-label="Activity heatmap"></div>
+      <div class="breakdown" id="breakdown"></div>
+    </section>
+
+    <p class="footer-note">Your data stays on this device. Use Settings → Export to back it up or move it to another device.</p>
+  </main>
+
+  <dialog id="dayDialog" class="sheet">
+    <form method="dialog" id="dayForm">
+      <h3 id="dayTitle"></h3>
+      <fieldset class="chips" id="typeChips">
+        <legend>Workout type</legend>
+      </fieldset>
+      <label class="field">Note (optional)
+        <textarea id="dayNote" rows="3" maxlength="500" placeholder="e.g. Push day, 5x5 bench"></textarea>
+      </label>
+      <div class="actions">
+        <button type="button" class="btn danger" id="removeDay">Remove</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="cancelDay">Cancel</button>
+        <button type="submit" class="btn primary" id="saveDay">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog" class="sheet">
+    <form method="dialog" id="settingsForm">
+      <h3>Settings</h3>
+      <label class="field">Weekly goal (days)
+        <select id="goalSelect"></select>
+      </label>
+      <label class="field">Week starts on
+        <select id="weekStartSelect">
+          <option value="1">Monday</option>
+          <option value="0">Sunday</option>
+        </select>
+      </label>
+      <div class="field">Backup
+        <div class="row">
+          <button type="button" class="btn" id="exportBtn">Export</button>
+          <button type="button" class="btn" id="importBtn">Import</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn danger" id="resetBtn">Delete all data</button>
+        <span class="spacer"></span>
+        <button type="submit" class="btn primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
