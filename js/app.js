@@ -51,12 +51,23 @@ async function reloadFromStore() {
   render();
 }
 
-function toast(message) {
+// Shown as a popover so it sits in the top layer, above any open sheet.
+function toast(message, ms = 2200) {
   const el = $("toast");
   el.textContent = message;
-  el.classList.add("show");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove("show"), 2200);
+  clearTimeout(toast.hideTimer);
+  if (el.showPopover) {
+    if (el.matches(":popover-open")) el.hidePopover(); // re-show to move above a newer sheet
+    el.showPopover();
+  }
+  el.classList.remove("show");
+  void el.offsetWidth; // restart the fade-in
+  el.classList.add("show");
+  toast.timer = setTimeout(() => {
+    el.classList.remove("show");
+    toast.hideTimer = setTimeout(() => el.hidePopover?.(), 250);
+  }, ms);
 }
 
 // ---------- Rendering ----------
@@ -270,7 +281,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `gym-days-${toKey(today)}.json`;
+  a.download = `gymlo-${toKey(today)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -285,7 +296,7 @@ async function importData(file) {
     openSettings();
     toast(`Imported ${count} day(s)`);
   } catch {
-    toast("That file isn't a valid Gym Days backup");
+    toast("That file isn't a valid Gymlo backup");
   }
 }
 
@@ -408,7 +419,7 @@ async function mergeDeviceData() {
 
 function userName() {
   const meta = user.user_metadata ?? {};
-  return meta.full_name || meta.name || user.email || "Gym Days user";
+  return meta.full_name || meta.name || user.email || "Gymlo user";
 }
 
 // Google profile photo, falling back to the first letter of the name.

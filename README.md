@@ -1,4 +1,4 @@
-# Gym Days
+# Gymlo
 
 A small, installable web app for tracking the days you go to the gym. It works in any
 desktop browser and installs to your phone's home screen, where it runs full screen and offline.

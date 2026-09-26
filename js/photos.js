@@ -18,7 +18,8 @@ export const PHOTO_STATS = [
   { key: "total", label: "total workouts", value: (s) => s.total },
 ];
 
-const CHOSEN_KEY = "gym-days:photo-stats";
+const APP_NAME = "Gymlo";
+const CHOSEN_KEY = "gym-days:photo-stats"; // storage keys keep the old name so saved choices survive
 const DEFAULT_CHOSEN = ["week", "month"];
 const FULL_SIDE = 1440; // longest side of the saved picture, in pixels
 const THUMB_SIDE = 360;
@@ -57,8 +58,8 @@ function fitFont(ctx, text, weight, size, maxWidth) {
 }
 
 // Draws `source` scaled to fit `maxSide`, with a dark band along the bottom
-// holding the caption and one column per stat (two rows when there are many).
-export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
+// holding the caption and the stats, up to three per row.
+export function composePhoto(source, items, caption, maxSide = FULL_SIDE, logo = null) {
   const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
   const w = Math.round(source.width * scale);
   const h = Math.round(source.height * scale);
@@ -71,10 +72,11 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   const u = Math.min(w, h) / 100; // layout unit: 1% of the short side
   const pad = 4 * u;
   const captionH = 5 * u;
-  const tileH = items.length ? 14 * u : 0;
-  const perRow = items.length <= 4 ? items.length : Math.ceil(items.length / 2);
+  const tileH = items.length ? 19 * u : 0;
+  const perRow = Math.min(3, items.length); // at most three stats per row
   const rows = items.length ? Math.ceil(items.length / perRow) : 0;
-  const bandH = pad + captionH + rows * tileH + pad;
+  const brandH = 17 * u; // logo + app name under the stats
+  const bandH = pad + captionH + rows * tileH + brandH + pad;
 
   const shade = ctx.createLinearGradient(0, h - bandH - 10 * u, 0, h);
   shade.addColorStop(0, "rgba(0,0,0,0)");
@@ -83,18 +85,28 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   ctx.fillStyle = shade;
   ctx.fillRect(0, h - bandH - 10 * u, w, bandH + 10 * u);
 
+  // Caption, centered: green "Workout Stats", then " · <date>" in white.
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  let y = h - bandH + pad + captionH * 0.75;
+  const y = h - bandH + pad + captionH * 0.75;
   const title = "Workout Stats";
-  ctx.fillStyle = "#22c55e";
-  fitFont(ctx, title, 700, Math.round(3.6 * u), w - 2 * pad);
-  ctx.fillText(title, pad, y);
-  const brandW = ctx.measureText(`${title} · `).width;
+  const rest = ` · ${caption}`;
+  let px = Math.round(3.6 * u);
+  for (; px > 8; px--) {
+    ctx.font = `700 ${px}px ${FONT}`;
+    const titleW = ctx.measureText(title).width;
+    ctx.font = `500 ${px}px ${FONT}`;
+    if (titleW + ctx.measureText(rest).width <= w - 2 * pad) break;
+  }
+  ctx.font = `700 ${px}px ${FONT}`;
+  const titleW = ctx.measureText(title).width;
+  ctx.font = `500 ${px}px ${FONT}`;
+  const left = (w - titleW - ctx.measureText(rest).width) / 2;
   ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText("·", pad + ctx.measureText(`${title} `).width, y);
-  fitFont(ctx, caption, 500, Math.round(3.4 * u), w - 2 * pad - brandW);
-  ctx.fillText(caption, pad + brandW, y);
+  ctx.fillText(rest, left + titleW, y);
+  ctx.font = `700 ${px}px ${FONT}`;
+  ctx.fillStyle = "#22c55e";
+  ctx.fillText(title, left, y);
 
   ctx.textAlign = "center";
   const colW = (w - 2 * pad) / Math.max(perRow, 1);
@@ -106,12 +118,23 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
     const x = rowLeft + ((i % perRow) + 0.5) * colW;
     const top = h - bandH + pad + captionH + row * tileH;
     ctx.fillStyle = "#22c55e";
-    fitFont(ctx, String(item.value), 800, Math.round(7.5 * u), colW - 2 * u);
-    ctx.fillText(String(item.value), x, top + 8 * u);
+    fitFont(ctx, String(item.value), 800, Math.round(11 * u), colW - 2 * u);
+    ctx.fillText(String(item.value), x, top + 11 * u);
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    fitFont(ctx, item.label, 500, Math.round(3.2 * u), colW - 2 * u);
-    ctx.fillText(item.label, x, top + 12 * u);
+    fitFont(ctx, item.label, 500, Math.round(4.2 * u), colW - 2 * u);
+    ctx.fillText(item.label, x, top + 16.5 * u);
   });
+
+  // App logo and name, centered under the stats.
+  const brandTop = h - bandH + pad + captionH + rows * tileH + 2 * u;
+  const logoSize = 8 * u;
+  if (logo) ctx.drawImage(logo, (w - logoSize) / 2, brandTop, logoSize, logoSize);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `800 ${Math.round(4 * u)}px ${FONT}`;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = `${(0.6 * u).toFixed(1)}px`;
+  ctx.fillText(APP_NAME.toUpperCase(), w / 2, brandTop + logoSize + 5 * u);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
   return canvas;
 }
 
@@ -160,6 +183,11 @@ function saveChosen(chosen) {
 const formatDay = (key) =>
   fromKey(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
+// Drawn on every picture; loaded up front so it's ready when a photo is picked.
+const logo = new Image();
+logo.src = "icons/logo.svg";
+const logoReady = logo.decode().then(() => logo, () => null);
+
 const formatCaption = (key) =>
   fromKey(key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -181,9 +209,11 @@ export function initPhotos(ctx) {
     }));
   }
 
+  let brandLogo = null;
+
   function renderPreview() {
     if (!source) return;
-    const composed = composePhoto(source, statItems(), formatCaption(ctx.todayKey()), 900);
+    const composed = composePhoto(source, statItems(), formatCaption(ctx.todayKey()), 900, brandLogo);
     const preview = $("photoCanvas");
     preview.width = composed.width;
     preview.height = composed.height;
@@ -211,12 +241,12 @@ export function initPhotos(ctx) {
   }
 
   function finalImage() {
-    return composePhoto(source, statItems(), formatCaption(ctx.todayKey()));
+    return composePhoto(source, statItems(), formatCaption(ctx.todayKey()), FULL_SIDE, brandLogo);
   }
 
   async function openEditor(file) {
     try {
-      source = await loadImage(file);
+      [source, brandLogo] = await Promise.all([loadImage(file), logoReady]);
     } catch (err) {
       console.error(err);
       ctx.toast("Couldn't open that picture — try a JPEG or PNG");
@@ -234,7 +264,8 @@ export function initPhotos(ctx) {
 
   async function downloadNew() {
     try {
-      await saveToDevice(finalImage().toDataURL("image/jpeg", 0.9), `gym-days-${ctx.todayKey()}.jpg`);
+      await saveToDevice(finalImage().toDataURL("image/jpeg", 0.9), `gymlo-${ctx.todayKey()}.jpg`);
+      ctx.toast("✓ Photo saved to your device", 1500);
     } catch (err) {
       console.error(err);
       ctx.toast("Couldn't save the picture");
@@ -256,7 +287,7 @@ export function initPhotos(ctx) {
       photos.unshift(row);
       renderGrid();
       $("photoDialog").close();
-      ctx.toast("Photo saved to your gallery");
+      ctx.toast("✓ Photo saved to your gallery", 1500);
     } catch (err) {
       console.error(err);
       ctx.toast(isMissingTable(err)
@@ -377,7 +408,10 @@ export function initPhotos(ctx) {
   });
   $("viewerDownload").addEventListener("click", () => {
     if (viewing?.image) {
-      saveToDevice(viewing.image, `gym-days-${viewing.taken_on}.jpg`).catch(() => ctx.toast("Couldn't save the picture"));
+      saveToDevice(viewing.image, `gymlo-${viewing.taken_on}.jpg`).then(
+        () => ctx.toast("✓ Photo saved to your device", 1500),
+        () => ctx.toast("Couldn't save the picture"),
+      );
     }
   });
   $("viewerDelete").addEventListener("click", deleteViewing);

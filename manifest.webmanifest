@@ -1,6 +1,6 @@
 {
-  "name": "Gym Days",
-  "short_name": "Gym Days",
+  "name": "Gymlo",
+  "short_name": "Gymlo",
   "description": "Track the days you hit the gym, your streaks and weekly goals.",
   "start_url": "./",
   "scope": "./",

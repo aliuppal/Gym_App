@@ -220,6 +220,12 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 
 .toast {
   position: fixed;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   left: 50%;
   bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translate(-50%, 20px);
@@ -250,7 +256,7 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
   text-align: center;
 }
 .signin[hidden], .app[hidden], .field[hidden] { display: none; }
-.signin img { border-radius: 18px; }
+.signin img { border-radius: 20px; box-shadow: 0 10px 30px rgb(22 163 74 / 0.35); }
 .signin p { margin: 0; color: var(--muted); }
 .btn.google {
   display: inline-flex;
@@ -355,3 +361,5 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .photo-stats li { background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; color: var(--muted); }
 .photo-stats strong { color: var(--text); }
 .app-version { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { border-radius: 9px; }
