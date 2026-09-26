@@ -16,6 +16,10 @@ desktop browser and installs to your phone's home screen, where it runs full scr
   in with Google and your workouts are saved to a Supabase Postgres database, so they follow you
   across phone and computer. Workouts already saved on the device are moved into your account on
   first sign-in.
+- **Profile:** tap your Google photo in the header to see your name, email, member-since date and
+  workout totals, and to **Log out**.
+- **Use without an account:** choose it on the sign-in screen to keep workouts on the device only.
+  A **Sign in** button stays in the header, and signing in later adds those workouts to your account.
 - **On-device mode:** with no Supabase project configured, workouts are saved in IndexedDB on the
   device, work fully offline, and never leave it. Export and import a JSON backup from Settings.
 - Light and dark themes follow your system setting.

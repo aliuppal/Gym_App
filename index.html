@@ -26,6 +26,8 @@
       Continue with Google
     </button>
     <p class="signin-error" id="signInError" role="alert" hidden></p>
+    <button type="button" class="link-btn" id="guestBtn">Use without an account</button>
+    <p class="signin-hint">Without an account, workouts stay on this device only.</p>
   </section>
 
   <main class="app">
@@ -34,9 +36,12 @@
         <h1>Gym Days</h1>
         <p class="today-label" id="todayLabel"></p>
       </div>
+      <div class="top-actions">
+      <button type="button" class="account-btn" id="accountBtn" hidden></button>
       <button class="icon-btn" id="settingsBtn" aria-label="Settings">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.3 7.3 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
       </button>
+      </div>
     </header>
 
     <button class="log-today" id="logTodayBtn"></button>
@@ -102,12 +107,6 @@
           <option value="0">Sunday</option>
         </select>
       </label>
-      <div class="field" id="accountField" hidden>Account
-        <div class="row">
-          <span class="account-email" id="accountEmail"></span>
-          <button type="button" class="btn" id="signOutBtn">Sign out</button>
-        </div>
-      </div>
       <div class="field">Storage
         <p class="storage-info" id="storageInfo"></p>
       </div>
@@ -120,6 +119,30 @@
       </div>
       <div class="actions">
         <button type="button" class="btn danger" id="resetBtn">Delete all data</button>
+        <span class="spacer"></span>
+        <button type="submit" class="btn primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="profileDialog" class="sheet">
+    <form method="dialog">
+      <div class="profile-head">
+        <div class="avatar large" id="profileAvatar" aria-hidden="true"></div>
+        <div class="profile-id">
+          <h3 id="profileName"></h3>
+          <p id="profileEmail"></p>
+          <p class="profile-since" id="profileSince"></p>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div><span class="stat-value" id="profileTotal">0</span><span class="stat-label">workouts</span></div>
+        <div><span class="stat-value" id="profileStreak">0</span><span class="stat-label">day streak</span></div>
+        <div><span class="stat-value" id="profileLongest">0</span><span class="stat-label">longest streak</span></div>
+      </div>
+      <p class="storage-info">Your workouts are saved to your account and sync across your devices.</p>
+      <div class="actions">
+        <button type="button" class="btn danger" id="logOutBtn">Log out</button>
         <span class="spacer"></span>
         <button type="submit" class="btn primary">Done</button>
       </div>

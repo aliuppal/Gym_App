@@ -287,7 +287,28 @@ async function importData(file) {
   }
 }
 
-// ---------- Sign-in ----------
+// ---------- Account ----------
+
+// Set when someone chooses "Use without an account", so they aren't asked to
+// sign in on every launch.
+const GUEST_KEY = "gym-days:guest";
+
+function isGuest() {
+  try {
+    return localStorage.getItem(GUEST_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setGuest(on) {
+  try {
+    if (on) localStorage.setItem(GUEST_KEY, "1");
+    else localStorage.removeItem(GUEST_KEY);
+  } catch {
+    // Not remembered; they'll just see the sign-in screen next time.
+  }
+}
 
 function showSignIn(message = "") {
   document.querySelector("main.app").hidden = true;
@@ -296,56 +317,149 @@ function showSignIn(message = "") {
   $("signInError").hidden = !message;
 }
 
-// Signs in (if needed) and opens the cloud store. Returns false while the user
-// still has to sign in.
-async function openSignedInStore() {
-  $("googleSignInBtn").onclick = async () => {
-    $("googleSignInBtn").disabled = true;
-    try {
-      await signInWithGoogle(); // navigates away to Google
-    } catch (err) {
-      console.error(err);
-      $("googleSignInBtn").disabled = false;
-      showSignIn("Couldn't start Google sign-in. Please try again.");
-    }
+async function startGoogleSignIn(button) {
+  button.disabled = true;
+  try {
+    await signInWithGoogle(); // navigates away to Google
+  } catch (err) {
+    console.error(err);
+    button.disabled = false;
+    toast("Couldn't start Google sign-in — check your connection");
+  }
+}
+
+async function logOut() {
+  $("logOutBtn").disabled = true;
+  try {
+    await signOut();
+  } catch (err) {
+    console.error(err);
+  }
+  location.reload();
+}
+
+async function openDeviceStore() {
+  store = await openStore();
+  data = await store.load();
+}
+
+// Opens the account's cloud store, or the on-device store for guests. Returns
+// false while the sign-in screen is showing.
+async function openAccountStore() {
+  $("googleSignInBtn").onclick = () => startGoogleSignIn($("googleSignInBtn"));
+  $("guestBtn").onclick = () => {
+    setGuest(true);
+    location.reload();
   };
   try {
     user = await getUser();
   } catch (err) {
     console.error(err);
+    if (isGuest()) {
+      await openDeviceStore();
+      return true;
+    }
     showSignIn("Couldn't reach the server. Check your internet connection and reload.");
     return false;
   }
   if (!user) {
+    if (isGuest()) {
+      await openDeviceStore();
+      return true;
+    }
     showSignIn();
     return false;
   }
+  setGuest(false);
   store = await openCloudStore(user);
   data = await store.load();
-  await uploadDeviceData();
+  await mergeDeviceData();
   onAuthChange((event) => {
     if (event === "SIGNED_OUT") location.reload();
   });
   return true;
 }
 
-// One-time move of workouts saved on this device (before sign-in existed) into
-// the account. Only runs when the account has no workouts yet, and the device
-// copy is cleared once the upload has succeeded.
-async function uploadDeviceData() {
-  let local;
+// Moves workouts saved on this device (as a guest, or before accounts existed)
+// into the account. Days already in the account win; the device copy is
+// cleared once the upload has succeeded.
+async function mergeDeviceData() {
   try {
-    local = await openStore();
+    const local = await openStore();
     const localData = await local.load();
     const count = Object.keys(localData.days).length;
-    if (count === 0 || Object.keys(data.days).length > 0) return;
-    await store.replaceAll(localData);
-    data = localData;
+    if (count === 0) return;
+    const accountIsNew = Object.keys(data.days).length === 0;
+    const merged = {
+      ...data,
+      days: { ...localData.days, ...data.days },
+      settings: accountIsNew ? localData.settings : data.settings,
+    };
+    await store.replaceAll(merged);
+    data = merged;
     await local.replaceAll(defaultData());
-    toast(`Moved ${count} workout day(s) from this device to your account`);
+    toast(`Added ${count} workout day(s) from this device to your account`);
   } catch (err) {
     console.warn("Couldn't move on-device data to the cloud", err);
   }
+}
+
+function userName() {
+  const meta = user.user_metadata ?? {};
+  return meta.full_name || meta.name || user.email || "Gym Days user";
+}
+
+// Google profile photo, falling back to the first letter of the name.
+function renderAvatar(el) {
+  const initial = document.createElement("span");
+  initial.textContent = userName().trim().charAt(0).toUpperCase();
+  el.replaceChildren(initial);
+  const meta = user.user_metadata ?? {};
+  const url = meta.avatar_url || meta.picture;
+  if (!url) return;
+  const img = new Image();
+  img.alt = "";
+  img.referrerPolicy = "no-referrer"; // Google photos can refuse requests that carry a referrer
+  img.onload = () => el.replaceChildren(img);
+  img.src = url;
+}
+
+function renderAccountButton() {
+  const btn = $("accountBtn");
+  btn.hidden = !cloudEnabled;
+  if (!cloudEnabled) return;
+  if (user) {
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    renderAvatar(avatar);
+    btn.replaceChildren(avatar);
+    btn.setAttribute("aria-label", `Profile: ${userName()}`);
+    btn.onclick = openProfile;
+    $("footerNote").textContent = "Your workouts are saved to your account and sync across your devices.";
+  } else {
+    btn.textContent = "Sign in";
+    btn.classList.add("signin-btn");
+    btn.removeAttribute("aria-label");
+    btn.onclick = () => startGoogleSignIn(btn);
+    $("footerNote").textContent = "You're not signed in, so workouts stay on this device. Sign in to sync them across devices.";
+  }
+}
+
+function openProfile() {
+  const stats = computeStats(data.days, today, data.settings);
+  renderAvatar($("profileAvatar"));
+  $("profileName").textContent = userName();
+  $("profileEmail").textContent = user.email ?? "";
+  $("profileEmail").hidden = !user.email || user.email === userName();
+  const since = new Date(user.created_at);
+  $("profileSince").textContent = `Signed in with Google · member since ${since.toLocaleDateString(undefined, {
+    month: "long", year: "numeric",
+  })}`;
+  $("profileTotal").textContent = Object.keys(data.days).length;
+  $("profileStreak").textContent = stats.currentStreak;
+  $("profileLongest").textContent = stats.longestStreak;
+  $("logOutBtn").disabled = false;
+  $("profileDialog").showModal();
 }
 
 // ---------- Wiring ----------
@@ -357,23 +471,19 @@ async function init() {
 
   try {
     if (cloudEnabled) {
-      if (!(await openSignedInStore())) return;
+      if (!(await openAccountStore())) return;
     } else {
-      store = await openStore();
-      data = await store.load();
+      await openDeviceStore();
     }
   } catch (err) {
     console.error(err);
-    toast(cloudEnabled ? "Couldn't load your workouts" : "Couldn't open on-device storage");
+    if (cloudEnabled) showSignIn("Couldn't load your workouts. Check your internet connection and reload.");
+    else toast("Couldn't open on-device storage");
     return;
   }
 
-  if (user) {
-    $("accountField").hidden = false;
-    $("accountEmail").textContent = user.email ?? "Signed in with Google";
-    $("signOutBtn").addEventListener("click", () => signOut());
-    $("footerNote").textContent = "Your workouts are saved to your account and sync across your devices.";
-  }
+  renderAccountButton();
+  $("logOutBtn").addEventListener("click", logOut);
 
   buildTypeChips();
   for (let i = 1; i <= 7; i++) $("goalSelect").append(new Option(`${i} day${i > 1 ? "s" : ""} per week`, i));
