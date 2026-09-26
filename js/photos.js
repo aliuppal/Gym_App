@@ -124,25 +124,17 @@ function scaledCopy(canvas, maxSide) {
   return out;
 }
 
-// Phones get the share sheet (which offers "Save Image" / "Save to Photos");
-// computers get a normal download.
+// Downloads the picture straight away (no share sheet).
 export async function saveToDevice(dataUrl, filename) {
   const blob = await (await fetch(dataUrl)).blob();
-  const file = new File([blob], filename, { type: blob.type });
-  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] });
-      return;
-    } catch (err) {
-      if (err.name === "AbortError") return;
-    }
-  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.append(a);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 // ---------- UI ----------
