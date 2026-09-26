@@ -124,6 +124,14 @@ function scaledCopy(canvas, maxSide) {
   return out;
 }
 
+// e.g. "gymlo-2026-09-26-173045.jpg": the local date and time of the save, so
+// every download gets its own file name.
+export function photoFilename(now = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  const date = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+  return `gymlo-${date}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}.jpg`;
+}
+
 // Downloads the picture straight away (no share sheet).
 export async function saveToDevice(dataUrl, filename) {
   const blob = await (await fetch(dataUrl)).blob();
@@ -234,7 +242,7 @@ export function initPhotos(ctx) {
 
   async function downloadNew() {
     try {
-      await saveToDevice(finalImage().toDataURL("image/jpeg", 0.9), `gymlo-${ctx.todayKey()}.jpg`);
+      await saveToDevice(finalImage().toDataURL("image/jpeg", 0.9), photoFilename());
       ctx.toast("✓ Photo saved to your device", 1500);
     } catch (err) {
       console.error(err);
@@ -378,7 +386,7 @@ export function initPhotos(ctx) {
   });
   $("viewerDownload").addEventListener("click", () => {
     if (viewing?.image) {
-      saveToDevice(viewing.image, `gymlo-${viewing.taken_on}.jpg`).then(
+      saveToDevice(viewing.image, photoFilename()).then(
         () => ctx.toast("✓ Photo saved to your device", 1500),
         () => ctx.toast("Couldn't save the picture"),
       );
