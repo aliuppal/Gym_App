@@ -7,7 +7,7 @@ import { defaultData, normalize } from "./storage.js";
 
 const DB_NAME = "gym-days";
 const DB_VERSION = 1;
-const DAYS = "days"; // one record per active day: { date: "YYYY-MM-DD", types, note }
+const DAYS = "days"; // one record per active day: { date: "YYYY-MM-DD", types, details, note }
 const META = "meta"; // key/value records, currently just "settings"
 const LEGACY_KEY = "gym-tracker:v1"; // where versions before the database kept everything
 

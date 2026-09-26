@@ -1,5 +1,22 @@
 export const WORKOUT_TYPES = ["Strength", "Cardio", "HIIT", "Mobility", "Sports", "Other"];
 
+// Optional details for each workout type. Names are unique across types, so a
+// day's details can be stored as one flat list.
+export const WORKOUT_DETAILS = {
+  Strength: ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Glutes", "Core", "Full body"],
+  Cardio: ["Running", "Treadmill", "Cycling", "Rowing", "Elliptical", "Stair climber", "Swimming", "Walking"],
+  HIIT: ["Circuit", "Tabata", "Sprints", "Kettlebell", "Jump rope", "Burpees", "CrossFit"],
+  Mobility: ["Stretching", "Yoga", "Pilates", "Foam rolling"],
+  Sports: ["Football", "Cricket", "Basketball", "Tennis", "Badminton", "Padel", "Martial arts"],
+  Other: ["Hiking", "Dance", "Climbing", "Boxing"],
+};
+
+// Keeps only details that belong to the day's types, in the order listed above.
+export function normalizeDetails(details, types) {
+  const raw = Array.isArray(details) ? details : [];
+  return types.flatMap((t) => WORKOUT_DETAILS[t].filter((d) => raw.includes(d)));
+}
+
 export function defaultData() {
   return { version: 1, days: {}, settings: { weeklyGoal: 3, weekStart: 1 } };
 }
@@ -20,8 +37,10 @@ export function normalize(raw) {
     for (const [key, value] of Object.entries(raw.days)) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
       const entry = value && typeof value === "object" ? value : {};
+      const types = normalizeTypes(entry);
       data.days[key] = {
-        types: normalizeTypes(entry),
+        types,
+        details: normalizeDetails(entry.details, types),
         note: typeof entry.note === "string" ? entry.note.slice(0, 500) : "",
       };
     }

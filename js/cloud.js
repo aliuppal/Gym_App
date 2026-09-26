@@ -64,13 +64,13 @@ export class SupabaseStore {
 
   async load() {
     const [days, settings] = await Promise.all([
-      this.supabase.from("workout_days").select("date, types, note"),
+      this.supabase.from("workout_days").select("date, types, details, note"),
       this.supabase.from("user_settings").select("weekly_goal, week_start").maybeSingle(),
     ]);
     check(days);
     check(settings);
     const data = { days: {}, settings: {} };
-    for (const { date, types, note } of days.data) data.days[date] = { types, note };
+    for (const { date, types, details, note } of days.data) data.days[date] = { types, details, note };
     if (settings.data) {
       data.settings = { weeklyGoal: settings.data.weekly_goal, weekStart: settings.data.week_start };
     }
@@ -81,7 +81,14 @@ export class SupabaseStore {
     check(
       await this.supabase
         .from("workout_days")
-        .upsert({ user_id: this.user.id, date, types: entry.types, note: entry.note, updated_at: new Date().toISOString() }),
+        .upsert({
+          user_id: this.user.id,
+          date,
+          types: entry.types,
+          details: entry.details,
+          note: entry.note,
+          updated_at: new Date().toISOString(),
+        }),
     );
   }
 

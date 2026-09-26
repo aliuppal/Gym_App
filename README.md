@@ -7,7 +7,8 @@ desktop browser and installs to your phone's home screen, where it runs full scr
 
 - **One-tap logging:** the big button logs today's workout.
 - **Calendar:** tap any past day to log it, choose one or more workout types (Strength, Cardio, HIIT,
-  Mobility, Sports, Other), add a note, or remove it.
+  Mobility, Sports, Other), then optional details for each (e.g. Cardio → Cycling, Treadmill;
+  Strength → Legs, Biceps), add a note, or remove it.
 - **Stats:** current streak, longest streak, days this week/month/year, and a weekly goal
   with a progress bar and a count of goal weeks in a row.
 - **Heatmap:** the last 6 months at a glance, with a breakdown by workout type.
@@ -41,7 +42,8 @@ npm test       # runs unit tests for the streak/stats logic (Node 18+)
 
 1. **Create a Supabase project** at https://supabase.com/dashboard.
 2. **Create the tables:** open *SQL Editor*, then paste and run each file in `supabase/migrations/`
-   in order: `20260926000000_gym_days.sql`, then `20260927000000_progress_photos.sql`. (Or, with the Supabase CLI:
+   in order: `20260926000000_gym_days.sql`, `20260927000000_progress_photos.sql`, then
+   `20260928000000_workout_details.sql`. (Or, with the Supabase CLI:
    `supabase link --project-ref <ref>` then `supabase db push`.)
 3. **Connect the app:** copy *Project URL* and the *anon / publishable* key from
    *Project Settings → API* into `js/config.js`. The anon key is meant to be public; row-level

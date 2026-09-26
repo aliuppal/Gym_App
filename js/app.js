@@ -1,5 +1,5 @@
 import { toKey, fromKey, addDays, startOfWeek, computeStats } from "./stats.js";
-import { WORKOUT_TYPES, defaultData, normalize } from "./storage.js";
+import { WORKOUT_TYPES, WORKOUT_DETAILS, defaultData, normalize, normalizeDetails } from "./storage.js";
 import { openStore, requestPersistence, isPersisted } from "./db.js";
 import { initPhotos } from "./photos.js";
 import { cloudEnabled, getUser, signInWithGoogle, signOut, onAuthChange, openCloudStore } from "./cloud.js";
@@ -15,6 +15,7 @@ let today = startOfToday();
 let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let editingKey = null;
 let selectedTypes = new Set();
+let selectedDetails = new Set();
 
 function startOfToday() {
   const now = new Date();
@@ -136,7 +137,7 @@ function renderCalendar(weekStart) {
       btn.disabled = true;
     }
     const label = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-    btn.setAttribute("aria-label", entry ? `${label}: ${formatTypes(entry)}` : `${label}: rest day`);
+    btn.setAttribute("aria-label", entry ? `${label}: ${formatEntry(entry)}` : `${label}: rest day`);
     cells.push(btn);
   }
   cal.replaceChildren(...cells);
@@ -164,7 +165,7 @@ function renderHeatmap(weekStart) {
         cell.classList.add("on");
         for (const type of entry.types) counts[type] = (counts[type] || 0) + 1;
       }
-      cell.title = `${date.toLocaleDateString()}${entry ? ` · ${formatTypes(entry)}` : ""}`;
+      cell.title = `${date.toLocaleDateString()}${entry ? ` · ${formatEntry(entry)}` : ""}`;
     }
     cells.push(cell);
   }
@@ -202,6 +203,40 @@ function setTypes(types) {
     chip.setAttribute("aria-pressed", String(selectedTypes.has(chip.dataset.type)));
   }
   $("saveDay").disabled = selectedTypes.size === 0;
+  renderDetailChips();
+}
+
+// One group of optional detail chips per selected type, e.g. Cardio →
+// Cycling, Treadmill…; details of a type that gets unselected are dropped.
+function renderDetailChips() {
+  const types = WORKOUT_TYPES.filter((t) => selectedTypes.has(t));
+  selectedDetails = new Set(normalizeDetails([...selectedDetails], types));
+  const groups = types.map((type) => {
+    const group = document.createElement("fieldset");
+    group.className = "chips detail-group";
+    const legend = document.createElement("legend");
+    legend.textContent = type;
+    const hint = document.createElement("span");
+    hint.className = "legend-hint";
+    hint.textContent = " · optional";
+    legend.append(hint);
+    group.append(legend);
+    for (const detail of WORKOUT_DETAILS[type]) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip small";
+      chip.textContent = detail;
+      chip.setAttribute("aria-pressed", String(selectedDetails.has(detail)));
+      chip.addEventListener("click", () => {
+        if (selectedDetails.has(detail)) selectedDetails.delete(detail);
+        else selectedDetails.add(detail);
+        chip.setAttribute("aria-pressed", String(selectedDetails.has(detail)));
+      });
+      group.append(chip);
+    }
+    return group;
+  });
+  $("detailGroups").replaceChildren(...groups);
 }
 
 function toggleType(type) {
@@ -215,6 +250,12 @@ function formatTypes(entry) {
   return entry.types.join(" + ");
 }
 
+// e.g. "Strength + Cardio: Legs, Cycling"
+function formatEntry(entry) {
+  const details = entry.details ?? [];
+  return details.length ? `${formatTypes(entry)}: ${details.join(", ")}` : formatTypes(entry);
+}
+
 function lastUsedTypes() {
   const keys = Object.keys(data.days).sort();
   return keys.length ? [...data.days[keys[keys.length - 1]].types] : [WORKOUT_TYPES[0]];
@@ -226,6 +267,7 @@ function openDay(key) {
   $("dayTitle").textContent = fromKey(key).toLocaleDateString(undefined, {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   });
+  selectedDetails = new Set(entry?.details ?? []);
   setTypes(entry ? entry.types : lastUsedTypes());
   $("dayNote").value = entry ? entry.note : "";
   $("removeDay").hidden = !entry;
@@ -237,7 +279,8 @@ function saveDay() {
   if (selectedTypes.size === 0) return;
   // Keep the canonical WORKOUT_TYPES order regardless of tap order.
   const types = WORKOUT_TYPES.filter((t) => selectedTypes.has(t));
-  const entry = { types, note: $("dayNote").value.trim() };
+  const details = normalizeDetails([...selectedDetails], types);
+  const entry = { types, details, note: $("dayNote").value.trim() };
   data.days[editingKey] = entry;
   commit(store.putDay(editingKey, entry));
 }
@@ -549,7 +592,7 @@ async function init() {
     if (data.days[key]) {
       openDay(key);
     } else {
-      const entry = { types: lastUsedTypes(), note: "" };
+      const entry = { types: lastUsedTypes(), details: [], note: "" };
       data.days[key] = entry;
       commit(store.putDay(key, entry));
       toast("Nice work! Workout logged 💪");

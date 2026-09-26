@@ -365,3 +365,9 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .wordmark { display: block; width: auto; }
 .brand .wordmark { height: 30px; }
 .signin .wordmark { height: 40px; border-radius: 0; box-shadow: none; }
+
+.detail-groups { display: flex; flex-direction: column; margin-bottom: 4px; }
+.detail-group { margin-bottom: 12px; gap: 6px; }
+.detail-group legend { font-weight: 600; color: var(--text); }
+.chip.small { padding: 6px 12px; font-size: 0.85rem; }
+#dayDialog { overflow-y: auto; }

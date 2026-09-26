@@ -4,7 +4,7 @@ import {
   toKey, fromKey, addDays, startOfWeek, currentStreak, longestStreak,
   countBetween, weeklyGoalStreak, computeStats,
 } from "../js/stats.js";
-import { normalize } from "../js/storage.js";
+import { normalize, normalizeDetails } from "../js/storage.js";
 
 const d = (key) => fromKey(key);
 const set = (...keys) => new Set(keys);
@@ -93,9 +93,9 @@ test("normalize drops junk and clamps settings", () => {
     settings: { weeklyGoal: 12, weekStart: 0 },
   });
   assert.deepEqual(data.days, {
-    "2026-09-25": { types: ["Strength", "Cardio"], note: "run" },
-    "2026-09-24": { types: ["Other"], note: "" },
-    "2026-09-23": { types: ["Other"], note: "" },
+    "2026-09-25": { types: ["Strength", "Cardio"], details: [], note: "run" },
+    "2026-09-24": { types: ["Other"], details: [], note: "" },
+    "2026-09-23": { types: ["Other"], details: [], note: "" },
   });
   assert.deepEqual(data.settings, { weeklyGoal: 3, weekStart: 0 });
   assert.deepEqual(normalize(null).days, {});
@@ -105,4 +105,14 @@ test("normalize migrates legacy single-type entries", () => {
   const data = normalize({ days: { "2026-09-20": { type: "HIIT", note: "" }, "2026-09-21": { type: "nope" } } });
   assert.deepEqual(data.days["2026-09-20"].types, ["HIIT"]);
   assert.deepEqual(data.days["2026-09-21"].types, ["Other"]);
+});
+
+test("normalizeDetails keeps only details of the chosen types, in list order", () => {
+  assert.deepEqual(
+    normalizeDetails(["Legs", "Cycling", "Yoga", "Biceps", "Legs", "bogus"], ["Strength", "Cardio"]),
+    ["Biceps", "Legs", "Cycling"],
+  );
+  assert.deepEqual(normalizeDetails(undefined, ["HIIT"]), []);
+  const data = normalize({ days: { "2026-09-20": { types: ["Cardio"], details: ["Treadmill", "Chest"] } } });
+  assert.deepEqual(data.days["2026-09-20"].details, ["Treadmill"]);
 });
