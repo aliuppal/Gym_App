@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever app files change so installed copies update.
-const CACHE_VERSION = "gym-days-v8";
+const CACHE_VERSION = "gym-days-v9";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -19,7 +19,13 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)));
+  // cache: "reload" skips the browser's HTTP cache (GitHub Pages allows 10 minutes),
+  // so a new version never gets installed with stale files.
+  event.waitUntil(
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: "reload" })))),
+  );
   self.skipWaiting();
 });
 
@@ -33,11 +39,13 @@ self.addEventListener("activate", (event) => {
 });
 
 // Network-first so updates show up when online; fall back to cache offline.
+// cache: "no-cache" revalidates with the server (a cheap 304 when unchanged)
+// instead of reusing a possibly stale HTTP-cached copy.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: "no-cache" })
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();

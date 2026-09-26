@@ -244,6 +244,7 @@ function openSettings() {
   $("goalSelect").value = String(data.settings.weeklyGoal);
   $("weekStartSelect").value = String(data.settings.weekStart);
   renderStorageInfo();
+  renderAppVersion();
   $("settingsDialog").showModal();
 }
 
@@ -465,10 +466,46 @@ function openProfile() {
 
 // ---------- Wiring ----------
 
-async function init() {
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+// Keeps installed copies current: checks for a new version whenever the app
+// comes back to the foreground (phones resume apps rather than reloading them)
+// and reloads once the new version has taken over.
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  navigator.serviceWorker
+    .register("sw.js", { updateViaCache: "none" })
+    .then((reg) => {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update().catch(() => {});
+      });
+    })
+    .catch(() => {});
+
+  // The first install also fires controllerchange; only reload for updates.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloading) return;
+    reloading = true;
+    // Don't throw away a half-written note or photo: wait until sheets are closed.
+    const reloadWhenIdle = () => {
+      if (document.querySelector("dialog[open]")) setTimeout(reloadWhenIdle, 1000);
+      else location.reload();
+    };
+    reloadWhenIdle();
+  });
+}
+
+async function renderAppVersion() {
+  try {
+    const name = (await caches.keys()).find((k) => k.startsWith("gym-days-"));
+    $("appVersion").textContent = name ? `App version ${name.replace("gym-days-", "")}` : "";
+  } catch {
+    $("appVersion").textContent = "";
   }
+}
+
+async function init() {
+  registerServiceWorker();
 
   try {
     if (cloudEnabled) {
