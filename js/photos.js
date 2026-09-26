@@ -10,7 +10,7 @@ const $ = (id) => document.getElementById(id);
 // `label` is what's printed under the number on the photo.
 export const PHOTO_STATS = [
   { key: "streak", label: "day streak", value: (s) => s.currentStreak },
-  { key: "week", label: "this week", value: (s, goal) => `${s.thisWeek}/${goal}` },
+  { key: "week", label: "days this week", value: (s) => s.thisWeek },
   { key: "month", label: "days this month", value: (s) => s.thisMonth },
   { key: "year", label: "days this year", value: (s) => s.thisYear },
   { key: "longest", label: "longest streak", value: (s) => s.longestStreak },
@@ -86,10 +86,12 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   let y = h - bandH + pad + captionH * 0.75;
-  ctx.fillStyle = "#22c55e";
-  fitFont(ctx, "GYM DAYS", 700, Math.round(3.4 * u), w - 2 * pad);
-  ctx.fillText("GYM DAYS", pad, y);
-  const brandW = ctx.measureText("GYM DAYS  ").width;
+  const title = "Workout Stats";
+  ctx.fillStyle = "#ffffff";
+  fitFont(ctx, title, 700, Math.round(3.6 * u), w - 2 * pad);
+  ctx.fillText(title, pad, y);
+  const brandW = ctx.measureText(`${title} · `).width;
+  ctx.fillText("·", pad + ctx.measureText(`${title} `).width, y);
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   fitFont(ctx, caption, 500, Math.round(3.4 * u), w - 2 * pad - brandW);
   ctx.fillText(caption, pad + brandW, y);
@@ -103,7 +105,7 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
     const rowLeft = pad + ((perRow - inRow) * colW) / 2;
     const x = rowLeft + ((i % perRow) + 0.5) * colW;
     const top = h - bandH + pad + captionH + row * tileH;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#22c55e";
     fitFont(ctx, String(item.value), 800, Math.round(7.5 * u), colW - 2 * u);
     ctx.fillText(String(item.value), x, top + 8 * u);
     ctx.fillStyle = "rgba(255,255,255,0.8)";
@@ -166,6 +168,9 @@ function saveChosen(chosen) {
 const formatDay = (key) =>
   fromKey(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
+const formatCaption = (key) =>
+  fromKey(key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
 // ctx: { getStore, isSignedIn, getStats, todayKey, toast }
 //   getStats() -> { stats, weeklyGoal } for right now
 export function initPhotos(ctx) {
@@ -186,7 +191,7 @@ export function initPhotos(ctx) {
 
   function renderPreview() {
     if (!source) return;
-    const composed = composePhoto(source, statItems(), formatDay(ctx.todayKey()), 900);
+    const composed = composePhoto(source, statItems(), formatCaption(ctx.todayKey()), 900);
     const preview = $("photoCanvas");
     preview.width = composed.width;
     preview.height = composed.height;
@@ -214,7 +219,7 @@ export function initPhotos(ctx) {
   }
 
   function finalImage() {
-    return composePhoto(source, statItems(), formatDay(ctx.todayKey()));
+    return composePhoto(source, statItems(), formatCaption(ctx.todayKey()));
   }
 
   async function openEditor(file) {
