@@ -312,3 +312,45 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 
 .link-btn { border: 0; background: none; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 4px; }
 .signin-hint { font-size: 0.8rem; }
+
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.btn.small { padding: 8px 14px; font-size: 0.9rem; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.photo-grid[hidden] { display: none; }
+.photo-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+}
+.photo-tile img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.photo-sheet { overflow-y: auto; }
+.photo-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 55vh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+  margin-bottom: 16px;
+}
+.photo-sheet .actions { flex-wrap: wrap; }
+.photo-note { margin: 0 0 16px; text-align: left; }
+.photo-stats { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-stats[hidden] { display: none; }
+.photo-stats li { background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; color: var(--muted); }
+.photo-stats strong { color: var(--text); }

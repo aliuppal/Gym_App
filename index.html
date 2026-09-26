@@ -74,6 +74,16 @@
       <div class="breakdown" id="breakdown"></div>
     </section>
 
+    <section class="card">
+      <div class="card-head">
+        <h2>Progress photos</h2>
+        <button type="button" class="btn primary small" id="addPhotoBtn">Add photo</button>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" hidden>
+      <div class="photo-grid" id="photoGrid" hidden></div>
+      <p class="hint" id="photoHint"></p>
+    </section>
+
     <p class="footer-note" id="footerNote">Your data stays on this device. Use Settings → Export to back it up or move it to another device.</p>
   </main>
 
@@ -145,6 +155,37 @@
         <button type="button" class="btn danger" id="logOutBtn">Log out</button>
         <span class="spacer"></span>
         <button type="submit" class="btn primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="photoDialog" class="sheet photo-sheet">
+    <form method="dialog" id="photoForm">
+      <h3>New progress photo</h3>
+      <canvas id="photoCanvas" class="photo-preview" role="img" aria-label="Preview of the photo with your stats"></canvas>
+      <fieldset class="chips" id="photoStatChips">
+        <legend>Stats on the photo <span class="legend-hint">· pick any</span></legend>
+      </fieldset>
+      <p class="hint photo-note" id="photoEditorNote"></p>
+      <div class="actions">
+        <button type="button" class="btn" id="photoCancel">Cancel</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="photoDownload">Save to device</button>
+        <button type="submit" class="btn primary" id="photoSave">Save to gallery</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="photoViewer" class="sheet photo-sheet">
+    <form method="dialog">
+      <h3 id="viewerTitle"></h3>
+      <img id="viewerImage" class="photo-preview" alt="Progress photo">
+      <ul class="photo-stats" id="viewerStats"></ul>
+      <div class="actions">
+        <button type="button" class="btn danger" id="viewerDelete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="viewerDownload">Save to device</button>
+        <button type="submit" class="btn primary">Close</button>
       </div>
     </form>
   </dialog>

@@ -105,6 +105,48 @@ export class SupabaseStore {
     const days = Object.entries(data.days).map(([date, entry]) => ({ date, ...entry }));
     check(await this.supabase.rpc("replace_all_data", { p_days: days, p_settings: data.settings }));
   }
+
+  // ---- Progress photos (base64 data URLs in the progress_photos table) ----
+
+  // Newest first, without the full-size image so the gallery loads quickly.
+  async listPhotos() {
+    const res = await this.supabase
+      .from("progress_photos")
+      .select("id, taken_on, created_at, thumbnail, stats")
+      .order("created_at", { ascending: false });
+    check(res);
+    return res.data;
+  }
+
+  async getPhoto(id) {
+    const res = await this.supabase
+      .from("progress_photos")
+      .select("id, taken_on, created_at, image, stats")
+      .eq("id", id)
+      .single();
+    check(res);
+    return res.data;
+  }
+
+  async addPhoto({ takenOn, image, thumbnail, stats }) {
+    const res = await this.supabase
+      .from("progress_photos")
+      .insert({ user_id: this.user.id, taken_on: takenOn, image, thumbnail, stats })
+      .select("id, taken_on, created_at, thumbnail, stats")
+      .single();
+    check(res);
+    return res.data;
+  }
+
+  async deletePhoto(id) {
+    check(await this.supabase.from("progress_photos").delete().eq("id", id));
+  }
+}
+
+// True when the progress_photos table hasn't been created yet
+// (supabase/migrations/20260927000000_progress_photos.sql).
+export function isMissingTable(err) {
+  return err?.code === "PGRST205" || err?.code === "42P01";
 }
 
 export async function openCloudStore(user) {

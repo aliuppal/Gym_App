@@ -1,6 +1,7 @@
 import { toKey, fromKey, addDays, startOfWeek, computeStats } from "./stats.js";
 import { WORKOUT_TYPES, defaultData, normalize } from "./storage.js";
 import { openStore, requestPersistence, isPersisted } from "./db.js";
+import { initPhotos } from "./photos.js";
 import { cloudEnabled, getUser, signInWithGoogle, signOut, onAuthChange, openCloudStore } from "./cloud.js";
 
 const $ = (id) => document.getElementById(id);
@@ -484,6 +485,13 @@ async function init() {
 
   renderAccountButton();
   $("logOutBtn").addEventListener("click", logOut);
+  initPhotos({
+    getStore: () => store,
+    isSignedIn: () => store.kind === "supabase",
+    getStats: () => ({ stats: computeStats(data.days, today, data.settings), weeklyGoal: data.settings.weeklyGoal }),
+    todayKey: () => toKey(today),
+    toast,
+  });
 
   buildTypeChips();
   for (let i = 1; i <= 7; i++) $("goalSelect").append(new Option(`${i} day${i > 1 ? "s" : ""} per week`, i));

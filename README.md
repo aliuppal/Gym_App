@@ -18,6 +18,10 @@ desktop browser and installs to your phone's home screen, where it runs full scr
   first sign-in.
 - **Profile:** tap your Google photo in the header to see your name, email, member-since date and
   workout totals, and to **Log out**.
+- **Progress photos:** add a photo, pick which stats to print along the bottom (day streak, this
+  week, days this month/year, longest streak, goal weeks in a row, total workouts), then save it to
+  your device and/or your gallery. Gallery photos are stored as base64 JPEGs in Supabase, together
+  with the stats shown on them, and can be viewed, saved again or deleted later on any device.
 - **Use without an account:** choose it on the sign-in screen to keep workouts on the device only.
   A **Sign in** button stays in the header, and signing in later adds those workouts to your account.
 - **On-device mode:** with no Supabase project configured, workouts are saved in IndexedDB on the
@@ -36,8 +40,8 @@ npm test       # runs unit tests for the streak/stats logic (Node 18+)
 ## Set up Supabase and Google sign-in
 
 1. **Create a Supabase project** at https://supabase.com/dashboard.
-2. **Create the tables:** open *SQL Editor*, paste the contents of
-   `supabase/migrations/20260926000000_gym_days.sql` and run it. (Or, with the Supabase CLI:
+2. **Create the tables:** open *SQL Editor*, then paste and run each file in `supabase/migrations/`
+   in order: `20260926000000_gym_days.sql`, then `20260927000000_progress_photos.sql`. (Or, with the Supabase CLI:
    `supabase link --project-ref <ref>` then `supabase db push`.)
 3. **Connect the app:** copy *Project URL* and the *anon / publishable* key from
    *Project Settings → API* into `js/config.js`. The anon key is meant to be public; row-level
@@ -77,6 +81,7 @@ js/app.js             UI and event wiring
 js/stats.js           Pure date/streak calculations (unit tested)
 js/db.js              On-device database (IndexedDB, localStorage fallback)
 js/cloud.js           Supabase database + Google sign-in
+js/photos.js          Progress photos: stats overlay, save to device, gallery
 js/config.js          Supabase project URL and anon key
 supabase/migrations/  Database schema and row-level security policies
 js/storage.js         Data model and import validation
