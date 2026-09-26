@@ -236,3 +236,32 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .legend-hint { opacity: 0.8; }
 .btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .storage-info { margin: 0; color: var(--text); font-size: 0.9rem; }
+
+.signin {
+  min-height: 100dvh;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+.signin[hidden], .app[hidden], .field[hidden] { display: none; }
+.signin img { border-radius: 18px; }
+.signin p { margin: 0; color: var(--muted); }
+.btn.google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface);
+  font-weight: 600;
+}
+.btn.google:disabled { opacity: 0.6; cursor: progress; }
+.signin-error { color: var(--danger) !important; font-size: 0.9rem; }
+.account-email { flex: 1; align-self: center; font-size: 0.9rem; overflow-wrap: anywhere; }

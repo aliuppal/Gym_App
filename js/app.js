@@ -1,6 +1,7 @@
 import { toKey, fromKey, addDays, startOfWeek, computeStats } from "./stats.js";
 import { WORKOUT_TYPES, defaultData, normalize } from "./storage.js";
 import { openStore, requestPersistence, isPersisted } from "./db.js";
+import { cloudEnabled, getUser, signInWithGoogle, signOut, onAuthChange, openCloudStore } from "./cloud.js";
 
 const $ = (id) => document.getElementById(id);
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -8,6 +9,7 @@ const HEATMAP_WEEKS = 26;
 
 let data = defaultData();
 let store = null;
+let user = null;
 let today = startOfToday();
 let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let editingKey = null;
@@ -31,13 +33,20 @@ async function commit(write) {
     requestPersistence().then(renderStorageInfo);
   } catch (err) {
     console.error(err);
-    toast("Couldn't save — device storage is full or unavailable");
+    toast(store.kind === "supabase"
+      ? "Couldn't save — check your internet connection"
+      : "Couldn't save — device storage is full or unavailable");
     await reloadFromStore();
   }
 }
 
 async function reloadFromStore() {
-  data = await store.load();
+  try {
+    data = await store.load();
+  } catch (err) {
+    console.error(err);
+    return;
+  }
   render();
 }
 
@@ -240,6 +249,11 @@ function openSettings() {
 async function renderStorageInfo() {
   if (!store) return;
   const count = Object.keys(data.days).length;
+  if (store.kind === "supabase") {
+    $("storageInfo").textContent =
+      `Cloud database · ${count} day${count === 1 ? "" : "s"} saved. Synced across every device you sign in on.`;
+    return;
+  }
   const where = store.kind === "indexeddb" ? "On-device database" : "Browser storage (limited)";
   const persisted = await isPersisted();
   const safety =
@@ -273,16 +287,92 @@ async function importData(file) {
   }
 }
 
+// ---------- Sign-in ----------
+
+function showSignIn(message = "") {
+  document.querySelector("main.app").hidden = true;
+  $("signInScreen").hidden = false;
+  $("signInError").textContent = message;
+  $("signInError").hidden = !message;
+}
+
+// Signs in (if needed) and opens the cloud store. Returns false while the user
+// still has to sign in.
+async function openSignedInStore() {
+  $("googleSignInBtn").onclick = async () => {
+    $("googleSignInBtn").disabled = true;
+    try {
+      await signInWithGoogle(); // navigates away to Google
+    } catch (err) {
+      console.error(err);
+      $("googleSignInBtn").disabled = false;
+      showSignIn("Couldn't start Google sign-in. Please try again.");
+    }
+  };
+  try {
+    user = await getUser();
+  } catch (err) {
+    console.error(err);
+    showSignIn("Couldn't reach the server. Check your internet connection and reload.");
+    return false;
+  }
+  if (!user) {
+    showSignIn();
+    return false;
+  }
+  store = await openCloudStore(user);
+  data = await store.load();
+  await uploadDeviceData();
+  onAuthChange((event) => {
+    if (event === "SIGNED_OUT") location.reload();
+  });
+  return true;
+}
+
+// One-time move of workouts saved on this device (before sign-in existed) into
+// the account. Only runs when the account has no workouts yet, and the device
+// copy is cleared once the upload has succeeded.
+async function uploadDeviceData() {
+  let local;
+  try {
+    local = await openStore();
+    const localData = await local.load();
+    const count = Object.keys(localData.days).length;
+    if (count === 0 || Object.keys(data.days).length > 0) return;
+    await store.replaceAll(localData);
+    data = localData;
+    await local.replaceAll(defaultData());
+    toast(`Moved ${count} workout day(s) from this device to your account`);
+  } catch (err) {
+    console.warn("Couldn't move on-device data to the cloud", err);
+  }
+}
+
 // ---------- Wiring ----------
 
 async function init() {
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
   try {
-    store = await openStore();
-    data = await store.load();
+    if (cloudEnabled) {
+      if (!(await openSignedInStore())) return;
+    } else {
+      store = await openStore();
+      data = await store.load();
+    }
   } catch (err) {
     console.error(err);
-    toast("Couldn't open on-device storage");
+    toast(cloudEnabled ? "Couldn't load your workouts" : "Couldn't open on-device storage");
     return;
+  }
+
+  if (user) {
+    $("accountField").hidden = false;
+    $("accountEmail").textContent = user.email ?? "Signed in with Google";
+    $("signOutBtn").addEventListener("click", () => signOut());
+    $("footerNote").textContent = "Your workouts are saved to your account and sync across your devices.";
   }
 
   buildTypeChips();
@@ -335,7 +425,8 @@ async function init() {
     if (file) importData(file);
   });
   $("resetBtn").addEventListener("click", () => {
-    if (!confirm("Delete all workout history on this device? This can't be undone.")) return;
+    const where = store.kind === "supabase" ? "from your account" : "on this device";
+    if (!confirm(`Delete all workout history ${where}? This can't be undone.`)) return;
     data = defaultData();
     $("settingsDialog").close();
     commit(store.replaceAll(data));
@@ -359,7 +450,10 @@ async function init() {
     render();
   };
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") refreshToday();
+    if (document.visibilityState !== "visible") return;
+    refreshToday();
+    // Pick up workouts logged on another device.
+    if (store.kind === "supabase") reloadFromStore();
   });
   channel?.addEventListener("message", reloadFromStore);
   setInterval(refreshToday, 60 * 1000);
@@ -368,10 +462,6 @@ async function init() {
   // Installed apps ask for persistent storage up front; in a browser tab we
   // wait until the first save so we don't prompt people who are just looking.
   if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) requestPersistence();
-
-  if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  }
 }
 
 init();

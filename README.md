@@ -12,10 +12,12 @@ desktop browser and installs to your phone's home screen, where it runs full scr
   with a progress bar and a count of goal weeks in a row.
 - **Heatmap:** the last 6 months at a glance, with a breakdown by workout type.
 - **Works offline:** it's a PWA with a service worker, so it opens without a connection.
-- **On-device database:** workouts are saved in IndexedDB on your phone or computer, work fully
-  offline, and never leave the device. The app asks the system to keep this storage persistent,
-  so it isn't cleared when space runs low (Settings shows the current status). Export and import a
-  JSON backup from Settings to move data between devices.
+- **Cloud sync with Google sign-in:** when a Supabase project is configured (see below), you sign
+  in with Google and your workouts are saved to a Supabase Postgres database, so they follow you
+  across phone and computer. Workouts already saved on the device are moved into your account on
+  first sign-in.
+- **On-device mode:** with no Supabase project configured, workouts are saved in IndexedDB on the
+  device, work fully offline, and never leave it. Export and import a JSON backup from Settings.
 - Light and dark themes follow your system setting.
 
 ## Run locally
@@ -26,6 +28,28 @@ No build step and no dependencies.
 npm start      # serves on http://localhost:8080
 npm test       # runs unit tests for the streak/stats logic (Node 18+)
 ```
+
+## Set up Supabase and Google sign-in
+
+1. **Create a Supabase project** at https://supabase.com/dashboard.
+2. **Create the tables:** open *SQL Editor*, paste the contents of
+   `supabase/migrations/20260926000000_gym_days.sql` and run it. (Or, with the Supabase CLI:
+   `supabase link --project-ref <ref>` then `supabase db push`.)
+3. **Connect the app:** copy *Project URL* and the *anon / publishable* key from
+   *Project Settings → API* into `js/config.js`. The anon key is meant to be public; row-level
+   security keeps each user's data private. Never put the `service_role` key in the app.
+4. **Create a Google OAuth client** in https://console.cloud.google.com → *APIs & Services*:
+   - *OAuth consent screen*: choose External, fill in the app name and your email.
+   - *Credentials → Create credentials → OAuth client ID → Web application*.
+   - *Authorized JavaScript origins*: `https://aliuppal.github.io` and `http://localhost:8080`.
+   - *Authorized redirect URIs*: `https://<your-project-ref>.supabase.co/auth/v1/callback`.
+5. **Enable Google in Supabase:** *Authentication → Sign In / Providers → Google*, turn it on and
+   paste the Google *Client ID* and *Client secret*.
+6. **Allow the app's URLs:** *Authentication → URL Configuration*: set *Site URL* to
+   `https://aliuppal.github.io/Gym_App/` and add `https://aliuppal.github.io/Gym_App/` and
+   `http://localhost:8080/` to *Redirect URLs*.
+
+Run `npm start`, open http://localhost:8080 and choose **Continue with Google**.
 
 ## Deploy (web + mobile)
 
@@ -48,6 +72,9 @@ styles.css            Styles (mobile-first, light/dark)
 js/app.js             UI and event wiring
 js/stats.js           Pure date/streak calculations (unit tested)
 js/db.js              On-device database (IndexedDB, localStorage fallback)
+js/cloud.js           Supabase database + Google sign-in
+js/config.js          Supabase project URL and anon key
+supabase/migrations/  Database schema and row-level security policies
 js/storage.js         Data model and import validation
 sw.js                 Service worker for offline support
 manifest.webmanifest  PWA manifest
