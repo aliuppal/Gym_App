@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever app files change so installed copies update.
-const CACHE_VERSION = "gym-days-v12";
+const CACHE_VERSION = "gym-days-v13";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -10,10 +10,12 @@ const APP_SHELL = [
   "js/db.js",
   "js/cloud.js",
   "js/photos.js",
+  "js/brand.js",
   "js/config.js",
   "manifest.webmanifest",
   "icons/icon.svg",
   "icons/logo.svg",
+  "icons/wordmark.svg",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/apple-touch-icon.png",

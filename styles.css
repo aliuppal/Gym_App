@@ -361,5 +361,7 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .photo-stats li { background: var(--surface-2); border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; color: var(--muted); }
 .photo-stats strong { color: var(--text); }
 .app-version { margin: 0; color: var(--muted); font-size: 0.8rem; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand img { border-radius: 9px; }
+.brand { display: flex; align-items: center; }
+.wordmark { display: block; width: auto; }
+.brand .wordmark { height: 30px; }
+.signin .wordmark { height: 40px; border-radius: 0; box-shadow: none; }

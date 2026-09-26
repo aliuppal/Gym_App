@@ -4,6 +4,7 @@
 
 import { fromKey } from "./stats.js";
 import { isMissingTable } from "./cloud.js";
+import { drawMark, drawWordmark, WORDMARK_WIDTH } from "./brand.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,7 +19,6 @@ export const PHOTO_STATS = [
   { key: "total", label: "total workouts", value: (s) => s.total },
 ];
 
-const APP_NAME = "Gymlo";
 const CHOSEN_KEY = "gym-days:photo-stats"; // storage keys keep the old name so saved choices survive
 const DEFAULT_CHOSEN = ["week", "month"];
 const FULL_SIDE = 1440; // longest side of the saved picture, in pixels
@@ -57,9 +57,11 @@ function fitFont(ctx, text, weight, size, maxWidth) {
   return px;
 }
 
-// Draws `source` scaled to fit `maxSide`, with a dark band along the bottom
-// holding the caption and the stats, up to three per row.
-export function composePhoto(source, items, caption, maxSide = FULL_SIDE, logo = null) {
+// Strava-style layout, everything centered on the photo itself: the green
+// "Workout Stats" title and the date, then each stat as a small label over a
+// big green number, then the Gymlo mark and wordmark. A soft shadow and a
+// light center shade keep the text readable on bright photos.
+export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
   const w = Math.round(source.width * scale);
   const h = Math.round(source.height * scale);
@@ -69,72 +71,47 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE, logo =
   const ctx = canvas.getContext("2d");
   ctx.drawImage(source, 0, 0, w, h);
 
-  const u = Math.min(w, h) / 100; // layout unit: 1% of the short side
-  const pad = 4 * u;
-  const captionH = 5 * u;
-  const tileH = items.length ? 19 * u : 0;
-  const perRow = Math.min(3, items.length); // at most three stats per row
-  const rows = items.length ? Math.ceil(items.length / perRow) : 0;
-  const brandH = 17 * u; // logo + app name under the stats
-  const bandH = pad + captionH + rows * tileH + brandH + pad;
-
-  const shade = ctx.createLinearGradient(0, h - bandH - 10 * u, 0, h);
-  shade.addColorStop(0, "rgba(0,0,0,0)");
-  shade.addColorStop(0.35, "rgba(0,0,0,0.55)");
-  shade.addColorStop(1, "rgba(0,0,0,0.8)");
+  const shade = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.6);
+  shade.addColorStop(0, "rgba(0,0,0,0.28)");
+  shade.addColorStop(1, "rgba(0,0,0,0.05)");
   ctx.fillStyle = shade;
-  ctx.fillRect(0, h - bandH - 10 * u, w, bandH + 10 * u);
+  ctx.fillRect(0, 0, w, h);
 
-  // Caption, centered: green "Workout Stats", then " · <date>" in white.
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  const y = h - bandH + pad + captionH * 0.75;
-  const title = "Workout Stats";
-  const rest = ` · ${caption}`;
-  let px = Math.round(3.6 * u);
-  for (; px > 8; px--) {
-    ctx.font = `700 ${px}px ${FONT}`;
-    const titleW = ctx.measureText(title).width;
-    ctx.font = `500 ${px}px ${FONT}`;
-    if (titleW + ctx.measureText(rest).width <= w - 2 * pad) break;
+  // Sizes in layout units (1% of the short side); everything shrinks together
+  // if the block wouldn't fit in 90% of the photo's height.
+  const TITLE = 4.4, DATE = 3.6, LABEL = 4.2, VALUE = 12, MARK = 10, WORD = 5.5;
+  const statH = LABEL + 1 + VALUE + 4;
+  const blockH = TITLE + 1.5 + DATE + 6 + items.length * statH + 1 + MARK + 2.5 + WORD;
+  const u = Math.min(Math.min(w, h) / 100, (h * 0.9) / blockH);
+  const maxW = w - 8 * u;
+  let y = (h - blockH * u) / 2;
+
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 1.5 * u;
+  ctx.shadowOffsetY = 0.3 * u;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const text = (str, color, weight, size) => {
+    ctx.fillStyle = color;
+    fitFont(ctx, str, weight, Math.round(size * u), maxW);
+    ctx.fillText(str, w / 2, y);
+  };
+
+  text("Workout Stats", "#22c55e", 800, TITLE);
+  y += (TITLE + 1.5) * u;
+  text(caption, "rgba(255,255,255,0.92)", 600, DATE);
+  y += (DATE + 6) * u;
+  for (const item of items) {
+    text(item.label.charAt(0).toUpperCase() + item.label.slice(1), "#ffffff", 600, LABEL);
+    y += (LABEL + 1) * u;
+    text(String(item.value), "#22c55e", 800, VALUE);
+    y += (VALUE + 4) * u;
   }
-  ctx.font = `700 ${px}px ${FONT}`;
-  const titleW = ctx.measureText(title).width;
-  ctx.font = `500 ${px}px ${FONT}`;
-  const left = (w - titleW - ctx.measureText(rest).width) / 2;
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText(rest, left + titleW, y);
-  ctx.font = `700 ${px}px ${FONT}`;
-  ctx.fillStyle = "#22c55e";
-  ctx.fillText(title, left, y);
-
-  ctx.textAlign = "center";
-  const colW = (w - 2 * pad) / Math.max(perRow, 1);
-  items.forEach((item, i) => {
-    const row = Math.floor(i / perRow);
-    const inRow = Math.min(perRow, items.length - row * perRow);
-    // Center a short last row.
-    const rowLeft = pad + ((perRow - inRow) * colW) / 2;
-    const x = rowLeft + ((i % perRow) + 0.5) * colW;
-    const top = h - bandH + pad + captionH + row * tileH;
-    ctx.fillStyle = "#22c55e";
-    fitFont(ctx, String(item.value), 800, Math.round(11 * u), colW - 2 * u);
-    ctx.fillText(String(item.value), x, top + 11 * u);
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    fitFont(ctx, item.label, 500, Math.round(4.2 * u), colW - 2 * u);
-    ctx.fillText(item.label, x, top + 16.5 * u);
-  });
-
-  // App logo and name, centered under the stats.
-  const brandTop = h - bandH + pad + captionH + rows * tileH + 2 * u;
-  const logoSize = 8 * u;
-  if (logo) ctx.drawImage(logo, (w - logoSize) / 2, brandTop, logoSize, logoSize);
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `800 ${Math.round(4 * u)}px ${FONT}`;
-  if ("letterSpacing" in ctx) ctx.letterSpacing = `${(0.6 * u).toFixed(1)}px`;
-  ctx.fillText(APP_NAME.toUpperCase(), w / 2, brandTop + logoSize + 5 * u);
-  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+  y += 1 * u;
+  drawMark(ctx, (w - MARK * u) / 2, y, MARK * u, "#22c55e");
+  y += (MARK + 2.5) * u;
+  const wordH = WORD * u;
+  drawWordmark(ctx, (w - (WORDMARK_WIDTH * wordH) / 100) / 2, y, wordH, "#ffffff");
   return canvas;
 }
 
@@ -183,11 +160,6 @@ function saveChosen(chosen) {
 const formatDay = (key) =>
   fromKey(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-// Drawn on every picture; loaded up front so it's ready when a photo is picked.
-const logo = new Image();
-logo.src = "icons/logo.svg";
-const logoReady = logo.decode().then(() => logo, () => null);
-
 const formatCaption = (key) =>
   fromKey(key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -209,11 +181,9 @@ export function initPhotos(ctx) {
     }));
   }
 
-  let brandLogo = null;
-
   function renderPreview() {
     if (!source) return;
-    const composed = composePhoto(source, statItems(), formatCaption(ctx.todayKey()), 900, brandLogo);
+    const composed = composePhoto(source, statItems(), formatCaption(ctx.todayKey()), 900);
     const preview = $("photoCanvas");
     preview.width = composed.width;
     preview.height = composed.height;
@@ -241,12 +211,12 @@ export function initPhotos(ctx) {
   }
 
   function finalImage() {
-    return composePhoto(source, statItems(), formatCaption(ctx.todayKey()), FULL_SIDE, brandLogo);
+    return composePhoto(source, statItems(), formatCaption(ctx.todayKey()));
   }
 
   async function openEditor(file) {
     try {
-      [source, brandLogo] = await Promise.all([loadImage(file), logoReady]);
+      source = await loadImage(file);
     } catch (err) {
       console.error(err);
       ctx.toast("Couldn't open that picture — try a JPEG or PNG");

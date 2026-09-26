@@ -87,8 +87,15 @@ supabase/migrations/  Database schema and row-level security policies
 js/storage.js         Data model and import validation
 sw.js                 Service worker for offline support
 manifest.webmanifest  PWA manifest
-icons/                App icons
+icons/                App icons, logo (logo.svg) and wordmark (wordmark.svg)
+js/brand.js           Gymlo mark and wordmark for drawing on photos
 tests/                Node test runner tests
 ```
 
 When you change app files, bump `CACHE_VERSION` in `sw.js` so installed copies pick up the update.
+
+## Brand
+
+The Gymlo wordmark is set in [Kanit](https://fonts.google.com/specimen/Kanit) ExtraBold Italic
+(SIL Open Font License) and stored as outlines, so it looks the same on every device and no font
+file is downloaded.
