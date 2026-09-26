@@ -87,12 +87,12 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   ctx.textBaseline = "alphabetic";
   let y = h - bandH + pad + captionH * 0.75;
   const title = "Workout Stats";
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#22c55e";
   fitFont(ctx, title, 700, Math.round(3.6 * u), w - 2 * pad);
   ctx.fillText(title, pad, y);
   const brandW = ctx.measureText(`${title} · `).width;
-  ctx.fillText("·", pad + ctx.measureText(`${title} `).width, y);
   ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText("·", pad + ctx.measureText(`${title} `).width, y);
   fitFont(ctx, caption, 500, Math.round(3.4 * u), w - 2 * pad - brandW);
   ctx.fillText(caption, pad + brandW, y);
 
