@@ -113,6 +113,27 @@ export class SupabaseStore {
     check(await this.supabase.rpc("replace_all_data", { p_days: days, p_settings: data.settings }));
   }
 
+  // ---- Profile (profiles table, created by a trigger when the user signs up) ----
+
+  async getProfile() {
+    const res = await this.supabase
+      .from("profiles")
+      .select("full_name, email, avatar_url, created_at")
+      .eq("id", this.user.id)
+      .maybeSingle();
+    check(res);
+    return res.data;
+  }
+
+  async updateName(fullName) {
+    check(
+      await this.supabase
+        .from("profiles")
+        .update({ full_name: fullName, updated_at: new Date().toISOString() })
+        .eq("id", this.user.id),
+    );
+  }
+
   // ---- Progress photos (base64 data URLs in the progress_photos table) ----
 
   // Newest first, without the full-size image so the gallery loads quickly.

@@ -371,3 +371,14 @@ h3 { margin: 0 0 16px; font-size: 1.15rem; }
 .detail-group legend { font-weight: 600; color: var(--text); }
 .chip.small { padding: 6px 12px; font-size: 0.85rem; }
 #dayDialog { overflow-y: auto; }
+
+#profileNameInput {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+}

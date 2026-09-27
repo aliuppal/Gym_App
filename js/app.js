@@ -11,6 +11,7 @@ const HEATMAP_WEEKS = 26;
 let data = defaultData();
 let store = null;
 let user = null;
+let profile = null; // row from the profiles table; null until loaded (or if it isn't set up)
 let today = startOfToday();
 let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let editingKey = null;
@@ -428,7 +429,13 @@ async function openAccountStore() {
   }
   setGuest(false);
   store = await openCloudStore(user);
-  data = await store.load();
+  [data, profile] = await Promise.all([
+    store.load(),
+    store.getProfile().catch((err) => {
+      console.warn("Couldn't load the profile; using the Google account details", err);
+      return null;
+    }),
+  ]);
   await mergeDeviceData();
   onAuthChange((event) => {
     if (event === "SIGNED_OUT") location.reload();
@@ -462,7 +469,7 @@ async function mergeDeviceData() {
 
 function userName() {
   const meta = user.user_metadata ?? {};
-  return meta.full_name || meta.name || user.email || "Gymlo user";
+  return profile?.full_name || meta.full_name || meta.name || user.email || "Gymlo user";
 }
 
 // Google profile photo, falling back to the first letter of the name.
@@ -471,7 +478,7 @@ function renderAvatar(el) {
   initial.textContent = userName().trim().charAt(0).toUpperCase();
   el.replaceChildren(initial);
   const meta = user.user_metadata ?? {};
-  const url = meta.avatar_url || meta.picture;
+  const url = profile?.avatar_url || meta.avatar_url || meta.picture;
   if (!url) return;
   const img = new Image();
   img.alt = "";
@@ -507,15 +514,42 @@ function openProfile() {
   $("profileName").textContent = userName();
   $("profileEmail").textContent = user.email ?? "";
   $("profileEmail").hidden = !user.email || user.email === userName();
-  const since = new Date(user.created_at);
+  const since = new Date(profile?.created_at ?? user.created_at);
   $("profileSince").textContent = `Signed in with Google · member since ${since.toLocaleDateString(undefined, {
     month: "long", year: "numeric",
   })}`;
   $("profileTotal").textContent = Object.keys(data.days).length;
   $("profileStreak").textContent = stats.currentStreak;
   $("profileLongest").textContent = stats.longestStreak;
+  $("profileNameField").hidden = !profile;
+  $("profileNameInput").value = userName();
+  $("profileNameSave").disabled = false;
   $("logOutBtn").disabled = false;
   $("profileDialog").showModal();
+}
+
+async function saveProfileName() {
+  const name = $("profileNameInput").value.trim().replace(/\s+/g, " ");
+  if (!name) {
+    toast("Please enter a name");
+    return;
+  }
+  if (name === userName()) return;
+  $("profileNameSave").disabled = true;
+  try {
+    await store.updateName(name);
+    profile = { ...profile, full_name: name };
+    $("profileName").textContent = name;
+    $("profileNameInput").value = name;
+    renderAvatar($("profileAvatar"));
+    renderAccountButton();
+    toast("✓ Name updated", 1500);
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't update your name — check your connection");
+  } finally {
+    $("profileNameSave").disabled = false;
+  }
 }
 
 // ---------- Wiring ----------
@@ -576,6 +610,13 @@ async function init() {
 
   renderAccountButton();
   $("logOutBtn").addEventListener("click", logOut);
+  $("profileNameSave").addEventListener("click", saveProfileName);
+  $("profileNameInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // don't submit (close) the sheet
+      saveProfileName();
+    }
+  });
   initPhotos({
     getStore: () => store,
     isSignedIn: () => store.kind === "supabase",
