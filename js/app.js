@@ -164,6 +164,7 @@ function renderHeatmap(weekStart) {
       const entry = data.days[key];
       if (entry) {
         cell.classList.add("on");
+        if (entry.types.length > 1) cell.dataset.level = "2";
         for (const type of entry.types) counts[type] = (counts[type] || 0) + 1;
       }
       cell.title = `${date.toLocaleDateString()}${entry ? ` · ${formatEntry(entry)}` : ""}`;
@@ -178,6 +179,7 @@ function renderHeatmap(weekStart) {
     .map(([type, n]) => {
       const el = document.createElement("span");
       el.textContent = `${type} · ${n}`;
+      el.dataset.type = type;
       return el;
     });
   $("breakdown").replaceChildren(...breakdown);

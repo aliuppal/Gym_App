@@ -28,7 +28,8 @@ desktop browser and installs to your phone's home screen, where it runs full scr
   A **Sign in** button stays in the header, and signing in later adds those workouts to your account.
 - **On-device mode:** with no Supabase project configured, workouts are saved in IndexedDB on the
   device, work fully offline, and never leave it. Export and import a JSON backup from Settings.
-- Light and dark themes follow your system setting.
+- **Kinetic Obsidian design:** a dark, high-contrast theme with Electric Lime actions, set in Plus Jakarta Sans. The
+  full spec (colours, type scale, shapes, components) lives in `DESIGN.md`; `styles.css` implements it as CSS variables.
 
 ## Run locally
 

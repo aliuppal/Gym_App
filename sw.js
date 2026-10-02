@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever app files change so installed copies update.
-const CACHE_VERSION = "gym-days-v16";
+const CACHE_VERSION = "gym-days-v17";
 const APP_SHELL = [
   "./",
   "index.html",

@@ -23,7 +23,7 @@ const CHOSEN_KEY = "gym-days:photo-stats"; // storage keys keep the old name so 
 const DEFAULT_CHOSEN = ["week", "month"];
 const FULL_SIDE = 1440; // longest side of the saved picture, in pixels
 const THUMB_SIDE = 360;
-const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const FONT = '"Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 // ---------- Drawing ----------
 
@@ -57,9 +57,9 @@ function fitFont(ctx, text, weight, size, maxWidth) {
   return px;
 }
 
-// Strava-style layout, everything centered on the photo itself: the green
+// Strava-style layout, everything centered on the photo itself: the lime
 // "Workout Stats" title and the date, then each stat as a small label over a
-// big green number, then the Gymlo mark and wordmark. A soft shadow and a
+// big lime number, then the Gymlo mark and wordmark. A soft shadow and a
 // light center shade keep the text readable on bright photos.
 export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
   const scale = Math.min(1, maxSide / Math.max(source.width, source.height));
@@ -97,18 +97,18 @@ export function composePhoto(source, items, caption, maxSide = FULL_SIDE) {
     ctx.fillText(str, w / 2, y);
   };
 
-  text("Workout Stats", "#22c55e", 800, TITLE);
+  text("Workout Stats", "#d4ff00", 800, TITLE);
   y += (TITLE + 1.5) * u;
   text(caption, "rgba(255,255,255,0.92)", 600, DATE);
   y += (DATE + 6) * u;
   for (const item of items) {
     text(item.label.charAt(0).toUpperCase() + item.label.slice(1), "#ffffff", 600, LABEL);
     y += (LABEL + 1) * u;
-    text(String(item.value), "#22c55e", 800, VALUE);
+    text(String(item.value), "#d4ff00", 800, VALUE);
     y += (VALUE + 4) * u;
   }
   y += 1 * u;
-  drawMark(ctx, (w - MARK * u) / 2, y, MARK * u, "#22c55e");
+  drawMark(ctx, (w - MARK * u) / 2, y, MARK * u, "#d4ff00");
   y += (MARK + 2.5) * u;
   const wordH = WORD * u;
   drawWordmark(ctx, (w - (WORDMARK_WIDTH * wordH) / 100) / 2, y, wordH, "#ffffff");
